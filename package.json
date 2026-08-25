@@ -1,0 +1,28 @@
+{
+  "name": "fine7079a-assignment",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lindo-123/FINE7079A-Assignment.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Lindo-123/FINE7079A-Assignment/issues"
+  },
+  "homepage": "https://github.com/Lindo-123/FINE7079A-Assignment#readme",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^4.0.15",
+    "@types/node": "^22.20.1",
+    "ethers": "^6.17.0",
+    "hardhat": "^3.14.0",
+    "typescript": "~6.0.3"
+  }
+}
