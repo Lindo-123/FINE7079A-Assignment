@@ -2,6 +2,8 @@
 
 contract Assigment {
 
+    address public creator;
+
     // Register Manufacturing facilities
     struct Facility {
         string name;
@@ -25,7 +27,7 @@ contract Assigment {
     EmissionRecord[] public records;
 
     mapping(uint256 => uint256[]) public FacilityRecords; //facility to record
-    mapping(address => bool) public AuthorisedSubmitter; 
+    mapping(address => bool) public AuthSubmitter; 
     mapping(address => bool) public AuthVerifier;   
 
     //Events 
@@ -35,7 +37,10 @@ contract Assigment {
     event SubmitterChanged(address account, bool allowed); //submitter authorisation changes
     event VerifierChanged(address account, bool allowes); //verifier authority changes
 
-
+    constructor() {
+        creator = msg.sender;
+        AuthSubmitter[msg.sender] = true; 
+    }
 
 }
 
