@@ -75,6 +75,11 @@ contract Assigment {
     }
 
     //Submitting emission record
+    
+    modifier onlySubmitter() {
+        require(AuthSubmitter[msg.sender], "not authorised submitter");
+        _;
+    }
 
     
     //Auditor verifying/approving record (more of a sign-off)
@@ -92,6 +97,8 @@ contract Assigment {
         records[RecordID]. verifier = msg.sender;
         emit RecordVerified(RecordID, msg.sender);
     }
+
+    // Retrieve emissions records for verification.
 
 }
 
