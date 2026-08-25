@@ -79,6 +79,20 @@ contract Assigment {
     
     //Auditor verifying/approving record (more of a sign-off)
 
+    modifier onlyVerifier() {
+        require(AuthVerifier[msg.sender], "not authorised verifier");
+        _;
+    }
+
+    function verifyRecord(uint256 RecordID) public onlyVerifier {
+        require(RecordID < records.length, "Record does not exist");
+        require(!records[RecordID].verified, "Record already verified"); 
+        require(records[RecordID].submittedBy != msg.sender, "Cannot verify your own submission");
+        records[RecordID].verified = true;
+        records[RecordID]. verifier = msg.sender;
+        emit RecordVerified(RecordID, msg.sender);
+    }
+
 }
 
 
