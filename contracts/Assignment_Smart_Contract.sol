@@ -116,6 +116,29 @@ contract Assigment {
     }
 
     // Retrieve emissions records for verification.
+    function computeHash(string memory report, string memory salt) public pure returns (bytes32) {
+        return keccak256(abi.encode(report, salt));
+    }
+
+    function checkRecord(uint256 RecordId, string memory report, string memory salt)
+        public view returns (bool)
+    {
+        require(RecordId < records.length, "Record does not exist");
+        return records[RecordId].ReportHash == keccak256(abi.encode(report, salt));
+    }
+
+    function getRecordIdsForFacility(uint256 FacilityID) public view returns (uint256[] memory) {
+        require(FacilityID < facilities.length, "Facility does not exist");
+        return FacilityRecords[FacilityID];
+    }
+
+    function totalFacilities() public view returns (uint256) {
+        return facilities.length;
+    }
+
+    function totalRecords() public view returns (uint256) {
+        return records.length;
+    }
 
 }
 
