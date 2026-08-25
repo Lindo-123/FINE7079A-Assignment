@@ -63,6 +63,22 @@ contract Assigment {
         emit VerifierChanged(account, allowed);
     }
 
+    // Adding Facilities to register 
+    function RegisterFacility(string memory name, address owner) public onlyCreator{
+        require(bytes(name).length >0, "No name");
+        require(owner != address(0), "Invalid address");
+        facilities.push(Facility(name, owner));
+
+        uint256 FacilityID = facilities.length-1; 
+        emit FacilityRegistered(FacilityID, name, owner);
+
+    }
+
+    //Submitting emission record
+
+    
+    //Auditor verifying/approving record (more of a sign-off)
+
 }
 
 
