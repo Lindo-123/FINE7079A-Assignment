@@ -35,11 +35,32 @@ contract Assigment {
     event RecordSubmitted(uint256 RecordID, uint256 FacilityID, uint256 ReportHash, address SubmittedBy); //triggered when emission is reported
     event RecordVerified(uint256 RecordID, address verifier);  //When auditor signs reported emissions
     event SubmitterChanged(address account, bool allowed); //submitter authorisation changes
-    event VerifierChanged(address account, bool allowes); //verifier authority changes
+    event VerifierChanged(address account, bool allowed); //verifier authority changes
 
     constructor() {
         creator = msg.sender;
         AuthSubmitter[msg.sender] = true; 
+    }
+
+    // Now we create functions 
+
+    // Setting authorised submitters and verifiers/auditors, this should only be done by creator of the smart contract. 
+
+    modifier onlyCreator() {
+        require(msg.sender == creator, "creator capabilities");
+        _;
+    }
+
+    function setSubmitter(address account, bool allowed) public onlyCreator {
+        require(account != address(0), "Invalid address");
+        AuthSubmitter[account] = allowed;
+        emit SubmitterChanged(account, allowed);
+    }
+
+    function setVerifier(address account, bool allowed) public onlyCreator {
+        require(account != address(0), "Invalid address");
+        AuthVerifier[account] = allowed;
+        emit VerifierChanged(account, allowed);
     }
 
 }
