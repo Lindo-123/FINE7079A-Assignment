@@ -34,16 +34,16 @@ contract Assigment {
     mapping(uint256 => mapping(uint256 => bool)) public PeriodReported; 
 
     //Events 
-    event FacilityRegistered(uint256 FacilityID, string name, address owner); //triggered when a new facility is added
-    event RecordSubmitted(uint256 RecordID, uint256 FacilityID, bytes32 ReportHash, address SubmittedBy); //triggered when emission is reported
-    event RecordVerified(uint256 RecordID, address verifier);  //When auditor signs reported emissions
+    event FacilityRegistered(uint256 indexed FacilityID, string name, address indexed owner); //triggered when a new facility is added
+    event RecordSubmitted(uint256 indexed RecordID, uint256 indexed FacilityID, bytes32 ReportHash, address indexed SubmittedBy); //triggered when emission is reported
+    event RecordVerified(uint256 indexed RecordID, address indexed verifier);  //When auditor signs reported emissions
     event RecordRejected(uint256 indexed RecordID, address indexed verifier, string reason); //When auditor rejects reported emissions
-    event SubmitterChanged(address account, bool allowed); //submitter authorisation changes
-    event VerifierChanged(address account, bool allowed); //verifier authority changes
+    event SubmitterChanged(uint256 indexed FacilityID, address indexed account, bool allowed); //submitter authorisation changes
+    event VerifierChanged(address indexed account, bool allowed); //verifier authority changes
 
     constructor() {
         creator = msg.sender;
-        AuthSubmitter[msg.sender] = true; 
+        //AuthSubmitter[msg.sender] = true; 
     }
 
     // Now we create functions 
@@ -75,7 +75,7 @@ contract Assigment {
         facilities.push(Facility(name, owner));
 
         uint256 FacilityID = facilities.length-1; 
-        FacilitySubmitter[FacilityID][owner] = true;
+        AuthSubmitter[FacilityID][owner] = true;
         emit FacilityRegistered(FacilityID, name, owner);
 
     }
@@ -84,6 +84,7 @@ contract Assigment {
     
     modifier onlySubmitter() {
         require(AuthSubmitter[msg.sender], "not authorised submitter");
+        require(AuthSubmitter[FacilityID][msg.sender], "not authorised submitter");
         _;
     }
 
@@ -92,10 +93,11 @@ contract Assigment {
             require(FacilityID < facilities.length, "Facility does not exist");
             require(ReportHash != bytes32(0), "Hash cannot be empty");
             require(Year >= 2000 && Year <2100, "Invalid year");
+            require(!PeriodReported[FacilityID][Year], "Period already reported");
 
             records.push(EmissionRecord({
                 FacilityID: FacilityID, ReportHash: ReportHash, Year: Year, submittedBy: msg.sender, Timestamp: block.timestamp,
-                verified: false, verifier: address(0)
+                verified: false, rejected: false, verifier: address(0)
 
             })); 
             uint256 RecordID = records.length-1;
@@ -119,7 +121,7 @@ contract Assigment {
         require(!records[RecordID].rejected, "Record already rejected");
         require(records[RecordID].submittedBy != msg.sender, "Cannot verify your own submission");
         records[RecordID].verified = true;
-        records[RecordID]. verifier = msg.sender;
+        records[RecordID].verifier = msg.sender;
         emit RecordVerified(RecordID, msg.sender);
     }
 
