@@ -21,6 +21,7 @@ contract Assigment {
         uint256 Timestamp;
         bytes32 ReportHash;
         bool verified;
+        bool rejected;
         address verifier;  // or auditor
     }
 
@@ -28,13 +29,15 @@ contract Assigment {
     EmissionRecord[] public records;
 
     mapping(uint256 => uint256[]) public FacilityRecords; //facility to record
-    mapping(address => bool) public AuthSubmitter; 
-    mapping(address => bool) public AuthVerifier;   
+    mapping(uint256 => mapping(address => bool)) public AuthSubmitter; 
+    mapping(address => bool) public AuthVerifier; 
+    mapping(uint256 => mapping(uint256 => bool)) public PeriodReported; 
 
     //Events 
     event FacilityRegistered(uint256 FacilityID, string name, address owner); //triggered when a new facility is added
     event RecordSubmitted(uint256 RecordID, uint256 FacilityID, bytes32 ReportHash, address SubmittedBy); //triggered when emission is reported
     event RecordVerified(uint256 RecordID, address verifier);  //When auditor signs reported emissions
+    event RecordRejected(uint256 indexed RecordID, address indexed verifier, string reason); //When auditor rejects reported emissions
     event SubmitterChanged(address account, bool allowed); //submitter authorisation changes
     event VerifierChanged(address account, bool allowed); //verifier authority changes
 
@@ -52,9 +55,10 @@ contract Assigment {
         _;
     }
 
-    function setSubmitter(address account, bool allowed) public onlyCreator {
+    function setSubmitter(uint256 FacilityID, address account, bool allowed) public onlyCreator {
+        require(FacilityID < facilities.length, "Facility does not exist");
         require(account != address(0), "Invalid address");
-        AuthSubmitter[account] = allowed;
+        AuthSubmitter[FacilityID][account] = allowed;
         emit SubmitterChanged(account, allowed);
     }
 
@@ -71,6 +75,7 @@ contract Assigment {
         facilities.push(Facility(name, owner));
 
         uint256 FacilityID = facilities.length-1; 
+        FacilitySubmitter[FacilityID][owner] = true;
         emit FacilityRegistered(FacilityID, name, owner);
 
     }
@@ -95,6 +100,7 @@ contract Assigment {
             })); 
             uint256 RecordID = records.length-1;
             FacilityRecords[FacilityID].push(RecordID);
+            PeriodReported[FacilityID][Year] = true;
 
             emit RecordSubmitted(RecordID, FacilityID, ReportHash, msg.sender);
         }
@@ -110,10 +116,22 @@ contract Assigment {
     function verifyRecord(uint256 RecordID) public onlyVerifier {
         require(RecordID < records.length, "Record does not exist");
         require(!records[RecordID].verified, "Record already verified"); 
+        require(!records[RecordID].rejected, "Record already rejected");
         require(records[RecordID].submittedBy != msg.sender, "Cannot verify your own submission");
         records[RecordID].verified = true;
         records[RecordID]. verifier = msg.sender;
         emit RecordVerified(RecordID, msg.sender);
+    }
+
+    function rejectRecord(uint256 RecordID, string memory reason) public onlyVerifier {
+        require(RecordID < records.length, "Record does not exist");
+        require(!records[RecordID].verified, "Record already verified");
+        require(!records[RecordID].rejected, "Record already rejected");
+        require(records[RecordID].submittedBy != msg.sender, "Cannot reject your own submission");
+        records[RecordID].rejected = true;
+        records[RecordID].verifier = msg.sender;
+        PeriodReported[records[RecordID].FacilityID][records[RecordID].Year] = false;
+        emit RecordRejected(RecordID, msg.sender, reason);
     }
 
     // Retrieve emissions records for verification.
