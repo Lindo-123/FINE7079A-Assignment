@@ -1,0 +1,72 @@
+const { ethers } = await network.create()
+const signers = await ethers.getSigners()
+signers[0].address
+
+const creator = signers[0], operator = signers[1], auditor = signers[2], verifier = signers[3], outsider = signers[4]
+operator.address
+
+const fails = p => p.then(() => "UNEXPECTED SUCCESS").catch(e => e.message.split("\n")[0])
+
+//Deploy
+const Factory = await ethers.getContractFactory("Assignment")
+const mrv = await Factory.deploy()
+await mrv.waitForDeployment()
+await mrv.getAddress()
+mrv.deploymentTransaction().hash
+
+//deploy gas used
+(await mrv.deploymentTransaction().wait()).gasUsed
+
+//register facility
+const rc1 = await (await mrv.RegisterFacility("Rosslyn Assembly Plant", operator.address)).wait()
+rc1.gasUsed
+
+rc1.logs.map(l => { const p = mrv.interface.parseLog(l); return p.name + "(" + p.args.map(a => a.toString()).join(", ") + ")" })
+
+//testing permissions
+await fails(mrv.connect(outsider).RegisterFacility("Ghost Plant", outsider.address))
+await fails(mrv.RegisterFacility("", operator.address))
+
+//authorise submitter and verifier
+const rc2 = await (await mrv.setAuditor(0, auditor.address, true)).wait()
+rc2.gasUsed
+
+//hash off chain
+const report = "Delmas Lindo Plant | FY2025 | Scope1=41,230 tCO2e"
+const salt = "b7f3-2a91-secret-nonce"
+const hash = ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(["string","string"], [report, salt]))
+hash
+
+await mrv.computeHash(report, salt)
+
+//submit record
+const rc3 = await (await mrv.connect(operator).submitRecord(0, hash, 2025)).wait()
+rc3.gasUsed
+
+mrv.interface.parseLog(rc3.logs[0]).args.map(a => a.toString())
+await mrv.getRecord(0).then(r => ({ FacilityID: r.FacilityID.toString(), Year: r.Year.toString(), submittedBy: r.submittedBy, Timestamp: new Date(Number(r.Timestamp)*1000).toISOString(), signedOff: r.signedOff, auditor: r.auditor, verified: r.verified, rejected: r.rejected, verifier: r.verifier }))
+
+// validation guard
+await fails(mrv.connect(outsider).submitRecord(0, hash, 2024))
+await fails(mrv.connect(operator).submitRecord(99, hash, 2024))
+await fails(mrv.connect(operator).submitRecord(0, ethers.ZeroHash, 2024))
+await fails(mrv.connect(operator).submitRecord(0, hash, 2025))
+await fails(mrv.connect(verifier).verifyRecord(0))
+await fails(mrv.connect(outsider).signOffRecord(0))
+
+//internal sign-off
+await fails(mrv.connect(verifier).verifyRecord(0))
+await fails(mrv.connect(outsider).signOffRecord(0))
+await (await mrv.setAuditor(0, operator.address, true)).wait()
+await fails(mrv.connect(operator).signOffRecord(0))
+await (await mrv.setAuditor(0, operator.address, false)).wait()
+const rc4 = await (await mrv.connect(auditor).signOffRecord(0)).wait()
+rc4.gasUsed
+mrv.interface.parseLog(rc4.logs[0]).args.map(a => a.toString())
+await mrv.getRecord(0).then(r => ({ signedOff: r.signedOff, auditor: r.auditor, verified: r.verified }))
+await fails(mrv.connect(auditor).signOffRecord(0))
+
+await mrv.getRecord(0).then(r => ({ FacilityID: r.FacilityID.toString(), Year: r.Year.toString(), submittedBy: r.submittedBy, Timestamp: new Date(Number(r.Timestamp)*1000).toISOString(), signedOff: r.signedOff, auditor: r.auditor, verified: r.verified, rejected: r.rejected, verifier: r.verifier }))
+
+
+
