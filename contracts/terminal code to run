@@ -68,5 +68,16 @@ await fails(mrv.connect(auditor).signOffRecord(0))
 
 await mrv.getRecord(0).then(r => ({ FacilityID: r.FacilityID.toString(), Year: r.Year.toString(), submittedBy: r.submittedBy, Timestamp: new Date(Number(r.Timestamp)*1000).toISOString(), signedOff: r.signedOff, auditor: r.auditor, verified: r.verified, rejected: r.rejected, verifier: r.verifier }))
 
+//external verification
+await (await mrv.setVerifier(auditor.address, true)).wait()
+await fails(mrv.connect(auditor).verifyRecord(0))
+
+await (await mrv.setVerifier(auditor.address, false)).wait()
+const rc5 = await (await mrv.connect(verifier).verifyRecord(0)).wait()
+rc5.gasUsed
+
+await mrv.getRecord(0).then(r => ({ signedOff: r.signedOff, auditor: r.auditor, verified: r.verified, verifier: r.verifier }))
+
+await fails(mrv.connect(verifier).verifyRecord(0))
 
 
