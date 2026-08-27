@@ -102,7 +102,7 @@ contract Assignment {
     }
 
     function submitRecord(
-        uint256 FacilityID, bytes32 ReportHash, uint256 Year) public onlySubmitter(acilityID){
+        uint256 FacilityID, bytes32 ReportHash, uint256 Year) public onlySubmitter(FacilityID){
             // require(FacilityID < facilities.length, "Facility does not exist");
             require(ReportHash != bytes32(0), "Hash cannot be empty");
             require(Year >= 2000 && Year <2100, "Invalid year");
@@ -162,15 +162,19 @@ contract Assignment {
 
     // Either the internal auditor or the external verifier may reject a record
 
-    function rejectRecord(uint256 RecordID, string memory reason) public onlyVerifier {
+    function rejectRecord(uint256 RecordID, string memory reason) public {
         require(RecordID < records.length, "Record does not exist");
-        require(AuthAuditor[records[RecordID].FacilityID][msg.sender] || AuthVerifier[msg.sender], "not authorised auditor or verifier");
+        bool isAuditor = AuthAuditor[records[RecordID].FacilityID][msg.sender];
+        bool isVerifier = AuthVerifier[msg.sender];
+        require(isAuditor || isVerifier, "not authorised auditor or verifier");
+        if (!isAuditor) {require(records[RecordID].signedOff, "Record not signed off internally");}
         require(!records[RecordID].verified, "Record already verified");
         require(!records[RecordID].rejected, "Record already rejected");
         require(records[RecordID].submittedBy != msg.sender, "Cannot reject your own submission");
         require(bytes(reason).length > 0, "Reason required");
         records[RecordID].rejected = true;
-        records[RecordID].verifier = msg.sender;
+        if (isVerifier) {records[RecordID].verifier = msg.sender;} 
+        else {records[RecordID].auditor = msg.sender;}
         PeriodReported[records[RecordID].FacilityID][records[RecordID].Year] = false;
         emit RecordRejected(RecordID, msg.sender, reason);
     }
