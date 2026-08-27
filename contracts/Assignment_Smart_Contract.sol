@@ -164,9 +164,11 @@ contract Assignment {
 
     function rejectRecord(uint256 RecordID, string memory reason) public onlyVerifier {
         require(RecordID < records.length, "Record does not exist");
+        require(AuthAuditor[records[RecordID].FacilityID][msg.sender] || AuthVerifier[msg.sender], "not authorised auditor or verifier");
         require(!records[RecordID].verified, "Record already verified");
         require(!records[RecordID].rejected, "Record already rejected");
         require(records[RecordID].submittedBy != msg.sender, "Cannot reject your own submission");
+        require(bytes(reason).length > 0, "Reason required");
         records[RecordID].rejected = true;
         records[RecordID].verifier = msg.sender;
         PeriodReported[records[RecordID].FacilityID][records[RecordID].Year] = false;
@@ -178,16 +180,32 @@ contract Assignment {
         return keccak256(abi.encode(report, salt));
     }
 
-    function checkRecord(uint256 RecordId, string memory report, string memory salt)
+    function checkRecord(uint256 RecordID, string memory report, string memory salt)
         public view returns (bool)
     {
-        require(RecordId < records.length, "Record does not exist");
-        return records[RecordId].ReportHash == keccak256(abi.encode(report, salt));
+        require(RecordID < records.length, "Record does not exist");
+        return records[RecordID].ReportHash == keccak256(abi.encode(report, salt));
     }
 
     function getRecordIdsForFacility(uint256 FacilityID) public view returns (uint256[] memory) {
         require(FacilityID < facilities.length, "Facility does not exist");
         return FacilityRecords[FacilityID];
+    }
+
+    function getRecord(uint256 RecordID) public view returns (EmissionRecord memory) {
+        require(RecordID < records.length, "Record does not exist");
+        return records[RecordID];
+    }
+
+    function getRecordForYear(uint256 FacilityID, uint256 Year) public view returns (bool found, uint256 RecordID) {
+        require(FacilityID < facilities.length, "Facility does not exist");
+        uint256[] memory ids = FacilityRecords[FacilityID];
+        for (uint256 i = ids.length; i > 0; i--) {
+            if (records[ids[i-1]].Year == Year && !records[ids[i-1]].rejected) {
+                return (true, ids[i-1]);
+            }
+        }
+        return (false, 0);
     }
 
     function totalFacilities() public view returns (uint256) {
